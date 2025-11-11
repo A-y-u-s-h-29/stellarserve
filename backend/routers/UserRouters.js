@@ -2,7 +2,10 @@ import express from "express";
 
 const UserRouter = express.Router();
 
-// ✅ Register route - stores user data that login can retrieve
+// Store user data temporarily (in production, use database)
+let users = [];
+
+// ✅ Register route - stores REAL user data
 UserRouter.post('/register', async (req, res) => {
   try {
     const { userId, fullname, email, password } = req.body;
@@ -17,22 +20,30 @@ UserRouter.post('/register', async (req, res) => {
       });
     }
 
-    // ✅ Store user data that login can later retrieve
+    // ✅ Create user data
     const userEmail = email.toLowerCase().trim();
     const userData = {
-      id: Date.now(), // Store this ID for login to use
+      id: Date.now(),
       userId: userId,
       fullname: fullname,
-      email: userEmail
+      email: userEmail,
+      password: password // In production, hash this
     };
 
-    console.log('💾 User data stored:', userData);
+    // Store user (in production, save to database)
+    users.push(userData);
+    console.log('💾 User registered:', userData);
 
     res.json({
       success: true,
       message: 'User registered successfully!',
-      user: userData,
-      token: 'real-user-token-' + userEmail // Same format as login
+      user: {
+        id: userData.id,
+        userId: userData.userId,
+        fullname: userData.fullname,
+        email: userData.email
+      },
+      token: 'user-token-' + userData.id
     });
 
   } catch (error) {
@@ -44,7 +55,7 @@ UserRouter.post('/register', async (req, res) => {
   }
 });
 
-// ✅ Login route - returns ACTUAL user data from login
+// ✅ Login route - returns REAL user data
 UserRouter.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -58,19 +69,39 @@ UserRouter.post("/login", async (req, res) => {
       });
     }
 
-    // ✅ Return EXACT user data that was registered
     const userEmail = email.toLowerCase().trim();
     
+    // ✅ Find user by email (in production, query database)
+    const user = users.find(u => u.email === userEmail);
+    
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // ✅ Check password (in production, use bcrypt)
+    if (user.password !== password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid password'
+      });
+    }
+
+    console.log('✅ Login successful for:', user.email);
+
+    // ✅ Return ACTUAL user data
     res.json({
       success: true,
       message: 'Login successful!',
       user: {
-        id: Date.now(), // This should be the same ID used during registration
-        userId: userEmail.split('@')[0], // Use actual email prefix
-        fullname: userEmail.split('@')[0] + ' User', // Dynamic name based on email
-        email: userEmail // Use the actual email from login
+        id: user.id,
+        userId: user.userId,
+        fullname: user.fullname,
+        email: user.email
       },
-      token: 'real-user-token-' + userEmail // Unique token per user
+      token: 'user-token-' + user.id
     });
 
   } catch (error) {
@@ -82,31 +113,43 @@ UserRouter.post("/login", async (req, res) => {
   }
 });
 
-// ✅ Me route - returns actual logged-in user data
+// ✅ Me route - returns ACTUAL logged-in user
 UserRouter.get("/me", async (req, res) => {
   try {
-    // Get token from header
     const token = req.headers.authorization;
     console.log('🔑 Me route called with token:', token);
     
-    // ✅ Extract user email from token to return actual user data
-    let userEmail = 'user@example.com';
-    let userName = 'User';
-    
-    if (token && token.includes('real-user-token-')) {
-      userEmail = token.replace('real-user-token-', '');
-      userName = userEmail.split('@')[0] + ' User';
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'No token provided'
+      });
     }
+
+    // ✅ Extract user ID from token
+    const userId = token.replace('user-token-', '');
+    const user = users.find(u => u.id.toString() === userId);
     
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token'
+      });
+    }
+
+    console.log('✅ Me route returning user:', user.email);
+
+    // ✅ Return ACTUAL user data
     res.json({
       success: true,
       user: {
-        id: 1,
-        userId: userEmail.split('@')[0],
-        fullname: userName,
-        email: userEmail
+        id: user.id,
+        userId: user.userId,
+        fullname: user.fullname,
+        email: user.email
       }
     });
+
   } catch (error) {
     console.error('🚨 Me error:', error);
     res.status(500).json({
@@ -123,7 +166,7 @@ UserRouter.post("/logout", async (req, res) => {
   });
 });
 
-// Forgot password (simple version)
+// Forgot password
 UserRouter.post('/forgot-password', async (req, res) => {
   res.json({
     success: false,
