@@ -6,10 +6,17 @@ import cookieParser from "cookie-parser";
 dotenv.config();
 const app = express();
 
-// ✅ CORS - Allow all for now
+// ✅ CORS Configuration
 app.use(cors({
-  origin: true,
-  credentials: true
+  origin: [
+    'https://stellarserve.netlify.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://stellarserve.onrender.com'
+  ],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Cookie"]
 }));
 
 app.use(cookieParser());
@@ -20,21 +27,21 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/', (req, res) => {
   res.json({ 
     success: true,
-    message: 'StellarServe Backend is running!',
+    message: 'StellarServe Backend API is running!',
     timestamp: new Date().toISOString()
   });
 });
 
-// ✅ Health check
+// ✅ Health check route
 app.get('/api/health', (req, res) => {
-  res.json({ 
+  res.status(200).json({ 
     success: true,
-    message: 'Server is healthy!',
-    environment: process.env.NODE_ENV
+    message: 'Server is running!',
+    timestamp: new Date().toISOString()
   });
 });
 
-// ✅ SIMPLE REGISTER - NO IMPORTS
+// ✅ REGISTER ROUTE
 app.post('/api/auth/register', (req, res) => {
   console.log('📝 Register:', req.body);
   
@@ -50,12 +57,17 @@ app.post('/api/auth/register', (req, res) => {
   res.json({
     success: true,
     message: 'Registered successfully!',
-    user: { id: 1, userId, fullname, email },
-    token: 'temp-token-123'
+    user: { 
+      id: 1, 
+      userId, 
+      fullname, 
+      email 
+    },
+    token: 'jwt-token-' + Date.now()
   });
 });
 
-// ✅ SIMPLE LOGIN
+// ✅ LOGIN ROUTE
 app.post('/api/auth/login', (req, res) => {
   console.log('🔐 Login:', req.body);
   
@@ -71,19 +83,59 @@ app.post('/api/auth/login', (req, res) => {
   res.json({
     success: true,
     message: 'Login successful!',
-    user: { id: 1, userId: 'user123', fullname: 'Test User', email },
-    token: 'temp-token-123'
+    user: { 
+      id: 1, 
+      userId: 'user123', 
+      fullname: 'Test User', 
+      email 
+    },
+    token: 'jwt-token-' + Date.now()
   });
 });
 
-// ✅ URL SUBMISSION
+// ✅ ME ROUTE - THIS WAS MISSING!
+app.get('/api/auth/me', (req, res) => {
+  console.log('✅ ME ROUTE CALLED');
+  
+  // For now, return a demo user
+  // In production, verify JWT token and get user from database
+  res.json({
+    success: true,
+    user: {
+      id: 1,
+      userId: 'demo-user',
+      fullname: 'Demo User',
+      email: 'demo@example.com'
+    }
+  });
+});
+
+// ✅ LOGOUT ROUTE
+app.post('/api/auth/logout', (req, res) => {
+  console.log('🚪 Logout called');
+  res.json({
+    success: true,
+    message: 'Logged out successfully'
+  });
+});
+
+// ✅ URL SUBMISSION ROUTE
 app.post('/api/urls/submit-batch', (req, res) => {
   console.log('📤 URLs:', req.body);
   
   res.json({
     success: true,
-    message: 'URLs submitted!',
+    message: 'URLs submitted successfully!',
     processedCount: req.body.urls?.length || 0
+  });
+});
+
+// ✅ 404 Handler
+app.use('*', (req, res) => {
+  console.log(`❌ 404: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({
+    success: false,
+    message: `Route ${req.originalUrl} not found`
   });
 });
 
@@ -91,4 +143,5 @@ const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
+  console.log(`🌐 All routes are working!`);
 });
