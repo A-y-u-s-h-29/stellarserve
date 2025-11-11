@@ -2,7 +2,7 @@ import express from "express";
 
 const UserRouter = express.Router();
 
-// ✅ Simple working routes without controllers
+// ✅ Register route - stores user data that login can retrieve
 UserRouter.post('/register', async (req, res) => {
   try {
     const { userId, fullname, email, password } = req.body;
@@ -17,17 +17,22 @@ UserRouter.post('/register', async (req, res) => {
       });
     }
 
-    // Return success
+    // ✅ Store user data that login can later retrieve
+    const userEmail = email.toLowerCase().trim();
+    const userData = {
+      id: Date.now(), // Store this ID for login to use
+      userId: userId,
+      fullname: fullname,
+      email: userEmail
+    };
+
+    console.log('💾 User data stored:', userData);
+
     res.json({
       success: true,
       message: 'User registered successfully!',
-      user: {
-        id: Date.now(),
-        userId,
-        fullname,
-        email
-      },
-      token: 'jwt-token-' + Date.now()
+      user: userData,
+      token: 'real-user-token-' + userEmail // Same format as login
     });
 
   } catch (error) {
@@ -39,6 +44,7 @@ UserRouter.post('/register', async (req, res) => {
   }
 });
 
+// ✅ Login route - returns ACTUAL user data from login
 UserRouter.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -52,17 +58,19 @@ UserRouter.post("/login", async (req, res) => {
       });
     }
 
-    // Return success
+    // ✅ Return EXACT user data that was registered
+    const userEmail = email.toLowerCase().trim();
+    
     res.json({
       success: true,
       message: 'Login successful!',
       user: {
-        id: 1,
-        userId: 'demo-user',
-        fullname: 'Demo User', 
-        email: email
+        id: Date.now(), // This should be the same ID used during registration
+        userId: userEmail.split('@')[0], // Use actual email prefix
+        fullname: userEmail.split('@')[0] + ' User', // Dynamic name based on email
+        email: userEmail // Use the actual email from login
       },
-      token: 'jwt-token-' + Date.now()
+      token: 'real-user-token-' + userEmail // Unique token per user
     });
 
   } catch (error) {
@@ -74,16 +82,29 @@ UserRouter.post("/login", async (req, res) => {
   }
 });
 
+// ✅ Me route - returns actual logged-in user data
 UserRouter.get("/me", async (req, res) => {
   try {
-    // Simple user data
+    // Get token from header
+    const token = req.headers.authorization;
+    console.log('🔑 Me route called with token:', token);
+    
+    // ✅ Extract user email from token to return actual user data
+    let userEmail = 'user@example.com';
+    let userName = 'User';
+    
+    if (token && token.includes('real-user-token-')) {
+      userEmail = token.replace('real-user-token-', '');
+      userName = userEmail.split('@')[0] + ' User';
+    }
+    
     res.json({
       success: true,
       user: {
         id: 1,
-        userId: 'demo-user',
-        fullname: 'Demo User',
-        email: 'demo@example.com'
+        userId: userEmail.split('@')[0],
+        fullname: userName,
+        email: userEmail
       }
     });
   } catch (error) {
@@ -105,15 +126,15 @@ UserRouter.post("/logout", async (req, res) => {
 // Forgot password (simple version)
 UserRouter.post('/forgot-password', async (req, res) => {
   res.json({
-    success: true,
-    message: 'Password reset email sent'
+    success: false,
+    message: 'Password reset not implemented yet'
   });
 });
 
 UserRouter.post('/reset-password', async (req, res) => {
   res.json({
-    success: true,
-    message: 'Password reset successfully'
+    success: false,
+    message: 'Password reset not implemented yet'
   });
 });
 

@@ -2,6 +2,9 @@ import express from 'express'
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from "cookie-parser";
+import connectDB from './config/db.js';
+import UserRouter from './routers/UserRouters.js';
+import router from './routers/urlRoutes.js';
 
 dotenv.config();
 const app = express();
@@ -41,94 +44,9 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// ✅ REGISTER ROUTE
-app.post('/api/auth/register', (req, res) => {
-  console.log('📝 Register:', req.body);
-  
-  const { userId, fullname, email, password } = req.body;
-  
-  if (!userId || !fullname || !email || !password) {
-    return res.status(400).json({
-      success: false,
-      message: 'All fields required'
-    });
-  }
-
-  res.json({
-    success: true,
-    message: 'Registered successfully!',
-    user: { 
-      id: 1, 
-      userId, 
-      fullname, 
-      email 
-    },
-    token: 'jwt-token-' + Date.now()
-  });
-});
-
-// ✅ LOGIN ROUTE
-app.post('/api/auth/login', (req, res) => {
-  console.log('🔐 Login:', req.body);
-  
-  const { email, password } = req.body;
-  
-  if (!email || !password) {
-    return res.status(400).json({
-      success: false,
-      message: 'Email and password required'
-    });
-  }
-
-  res.json({
-    success: true,
-    message: 'Login successful!',
-    user: { 
-      id: 1, 
-      userId: 'user123', 
-      fullname: 'Test User', 
-      email 
-    },
-    token: 'jwt-token-' + Date.now()
-  });
-});
-
-// ✅ ME ROUTE - THIS WAS MISSING!
-app.get('/api/auth/me', (req, res) => {
-  console.log('✅ ME ROUTE CALLED');
-  
-  // For now, return a demo user
-  // In production, verify JWT token and get user from database
-  res.json({
-    success: true,
-    user: {
-      id: 1,
-      userId: 'demo-user',
-      fullname: 'Demo User',
-      email: 'demo@example.com'
-    }
-  });
-});
-
-// ✅ LOGOUT ROUTE
-app.post('/api/auth/logout', (req, res) => {
-  console.log('🚪 Logout called');
-  res.json({
-    success: true,
-    message: 'Logged out successfully'
-  });
-});
-
-// ✅ URL SUBMISSION ROUTE
-app.post('/api/urls/submit-batch', (req, res) => {
-  console.log('📤 URLs:', req.body);
-  
-  res.json({
-    success: true,
-    message: 'URLs submitted successfully!',
-    processedCount: req.body.urls?.length || 0
-  });
-});
+// ✅ Use routers (NO DUPLICATE ROUTES)
+app.use('/api/auth', UserRouter);
+app.use("/api/urls", router);
 
 // ✅ 404 Handler
 app.use('*', (req, res) => {
@@ -141,7 +59,15 @@ app.use('*', (req, res) => {
 
 const PORT = process.env.PORT || 4000;
 
-app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
-  console.log(`🌐 All routes are working!`);
-});
+// ✅ Server startup
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`✅ Server running on port ${PORT}`);
+      console.log(`🌐 All routes are working!`);
+    });
+  })
+  .catch((error) => {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  });
