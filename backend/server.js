@@ -2,7 +2,6 @@ import express from 'express'
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from "cookie-parser";
-import connectDB from './config/db.js';
 import UserRouter from './routers/UserRouters.js';
 import router from './routers/urlRoutes.js';
 
@@ -44,7 +43,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// ✅ Use routers (NO DUPLICATE ROUTES)
+// ✅ Use routers
 app.use('/api/auth', UserRouter);
 app.use("/api/urls", router);
 
@@ -59,15 +58,8 @@ app.use('*', (req, res) => {
 
 const PORT = process.env.PORT || 4000;
 
-// ✅ Server startup
-connectDB()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`✅ Server running on port ${PORT}`);
-      console.log(`🌐 All routes are working!`);
-    });
-  })
-  .catch((error) => {
-    console.error('❌ Failed to start server:', error);
-    process.exit(1);
-  });
+// ✅ Simple server startup without database
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`🌐 All routes are working!`);
+});
