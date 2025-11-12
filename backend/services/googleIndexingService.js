@@ -19,25 +19,26 @@ class GoogleIndexingService {
     try {
       console.log('🚀 Submitting to Google Indexing API:', url);
 
+      console.log('⏳ Sending request to Google...');
       const response = await this.indexing.urlNotifications.publish({
         requestBody: {
           url: url,
           type: 'URL_UPDATED' // or 'URL_DELETED'
         }
       });
-
-      console.log('✅ Google Indexing Response:', response.data);
+      console.log('✅ Request successfully sent to Google Indexing API.');
+      console.log('📦 Full Response from Google:', JSON.stringify(response.data, null, 2));
 
       return {
         success: true,
         data: response.data,
         message: 'URL successfully submitted to Google Indexing API',
-        notificationUrl: response.data.urlNotificationMetadata.url,
-        latestUpdate: response.data.urlNotificationMetadata.latestUpdate
+        notificationUrl: response.data.urlNotificationMetadata?.url,
+        latestUpdate: response.data.urlNotificationMetadata?.latestUpdate
       };
 
     } catch (error) {
-      console.error('❌ Google Indexing API Error:', error);
+      console.error('❌ Google Indexing API Error:', error?.response?.data || error.message);
       
       return {
         success: false,
@@ -50,18 +51,20 @@ class GoogleIndexingService {
   // Get indexing status
   async getIndexingStatus(url) {
     try {
+      console.log('🔍 Checking indexing status for:', url);
       const response = await this.indexing.urlNotifications.getMetadata({
         url: url
       });
+      console.log('📊 Status response:', JSON.stringify(response.data, null, 2));
 
       return {
         success: true,
         data: response.data,
-        status: response.data.urlNotificationMetadata.latestUpdate ? 'INDEXED' : 'PENDING'
+        status: response.data.urlNotificationMetadata?.latestUpdate ? 'INDEXED' : 'PENDING'
       };
 
     } catch (error) {
-      console.error('Google Status Check Error:', error);
+      console.error('Google Status Check Error:', error?.response?.data || error.message);
       return {
         success: false,
         error: error.message
