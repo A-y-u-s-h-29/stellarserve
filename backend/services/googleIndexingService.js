@@ -1,20 +1,43 @@
 import { google } from 'googleapis';
 import path from 'path';
+import fs from 'fs';
 
 class GoogleIndexingService {
   constructor() {
-    this.auth = new google.auth.GoogleAuth({
-      keyFile: path.join(process.cwd(), 'service-account-key.json'),
-      scopes: ['https://www.googleapis.com/auth/indexing']
-    });
-    
-    this.indexing = google.indexing({
-      version: 'v3',
-      auth: this.auth
-    });
+    try {
+      // ✅ Determine where to get credentials from
+      const keyPath = path.join(process.cwd(), 'service-account-key.json');
+      let credentials;
+
+      if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
+        console.log('🔐 Using Google credentials from environment variable');
+        credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+      } else if (fs.existsSync(keyPath)) {
+        console.log('📂 Using local service-account-key.json file');
+        credentials = JSON.parse(fs.readFileSync(keyPath, 'utf-8'));
+      } else {
+        throw new Error('❌ Google credentials not found. Add GOOGLE_SERVICE_ACCOUNT_KEY in Render environment.');
+      }
+
+      // ✅ Initialize Google Auth
+      this.auth = new google.auth.GoogleAuth({
+        credentials,
+        scopes: ['https://www.googleapis.com/auth/indexing']
+      });
+
+      // ✅ Initialize Indexing API client
+      this.indexing = google.indexing({
+        version: 'v3',
+        auth: this.auth
+      });
+
+      console.log('✅ Google Indexing Service initialized successfully.');
+    } catch (error) {
+      console.error('❌ Failed to initialize GoogleIndexingService:', error.message);
+    }
   }
 
-  // Submit URL to Google Indexing API
+  // ✅ Submit URL to Google Indexing API
   async submitUrlForIndexing(url) {
     try {
       console.log('🚀 Submitting to Google Indexing API:', url);
@@ -26,6 +49,7 @@ class GoogleIndexingService {
           type: 'URL_UPDATED' // or 'URL_DELETED'
         }
       });
+
       console.log('✅ Request successfully sent to Google Indexing API.');
       console.log('📦 Full Response from Google:', JSON.stringify(response.data, null, 2));
 
@@ -36,10 +60,9 @@ class GoogleIndexingService {
         notificationUrl: response.data.urlNotificationMetadata?.url,
         latestUpdate: response.data.urlNotificationMetadata?.latestUpdate
       };
-
     } catch (error) {
       console.error('❌ Google Indexing API Error:', error?.response?.data || error.message);
-      
+
       return {
         success: false,
         error: error.message,
@@ -48,7 +71,7 @@ class GoogleIndexingService {
     }
   }
 
-  // Get indexing status
+  // ✅ Get indexing status
   async getIndexingStatus(url) {
     try {
       console.log('🔍 Checking indexing status for:', url);
@@ -62,7 +85,6 @@ class GoogleIndexingService {
         data: response.data,
         status: response.data.urlNotificationMetadata?.latestUpdate ? 'INDEXED' : 'PENDING'
       };
-
     } catch (error) {
       console.error('Google Status Check Error:', error?.response?.data || error.message);
       return {
