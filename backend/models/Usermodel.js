@@ -1,3 +1,4 @@
+// models/Usermodel.js
 import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
@@ -19,7 +20,15 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-   resetPasswordToken: String,
+
+  // Token storage - store the currently valid token for this user (simple approach)
+  currentToken: {
+    type: String,
+    default: null
+  },
+
+  // Password reset fields
+  resetPasswordToken: String,
   resetPasswordExpiry: Date
 }, {
   timestamps: true // automatically adds createdAt and updatedAt

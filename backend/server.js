@@ -1,7 +1,8 @@
-import express from 'express'
+import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from "cookie-parser";
+import mongoose from "mongoose";  // ✅ Added for MongoDB
 import UserRouter from './routers/UserRouters.js';
 import router from './routers/urlRoutes.js';
 
@@ -21,6 +22,7 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Cookie"]
 }));
 
+// ✅ Middlewares
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -43,12 +45,12 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// ✅ Use routers
+// ✅ Routers
 app.use('/api/auth', UserRouter);
 app.use("/api/urls", router);
 
 // ✅ 404 Handler
-app.use('*', (req, res) => {
+app.use(/.*/, (req, res) => {
   console.log(`❌ 404: ${req.method} ${req.originalUrl}`);
   res.status(404).json({
     success: false,
@@ -56,10 +58,26 @@ app.use('*', (req, res) => {
   });
 });
 
+// ✅ MongoDB Connection
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGODB_URL, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log("✅ MongoDB Connected Successfully!");
+  } catch (error) {
+    console.error("❌ MongoDB Connection Failed:", error.message);
+    process.exit(1);
+  }
+};
+
 const PORT = process.env.PORT || 4000;
 
-// ✅ Simple server startup without database
-app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
-  console.log(`🌐 All routes are working!`);
+// ✅ Start server only after DB connects
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🌐 All routes are active!`);
+  });
 });
