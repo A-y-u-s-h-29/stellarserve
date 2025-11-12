@@ -386,9 +386,11 @@ export const submitUrlBatch = async (req, res) => {
     const successCount = results.filter(r => r.status === 'success').length;
     const errorCount = results.filter(r => r.status === 'error').length;
 
+    // ✅ Added processedCount for frontend compatibility
     res.status(200).json({
       success: true,
       message: `✅ ${successCount} URLs submitted successfully${errorCount > 0 ? `, ${errorCount} failed` : ''}`,
+      processedCount: processedUrls.length, // 👈 Added key
       data: {
         total: urls.length,
         processed: processedUrls.length,
