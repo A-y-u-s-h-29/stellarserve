@@ -12,6 +12,12 @@ class GoogleIndexingService {
       if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
         console.log('🔐 Using Google credentials from environment variable');
         credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+
+        // ✅ Fix: Convert escaped newlines back to real ones for Render compatibility
+        if (credentials.private_key) {
+          credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+        }
+
       } else if (fs.existsSync(keyPath)) {
         console.log('📂 Using local service-account-key.json file');
         credentials = JSON.parse(fs.readFileSync(keyPath, 'utf-8'));
@@ -41,8 +47,8 @@ class GoogleIndexingService {
   async submitUrlForIndexing(url) {
     try {
       console.log('🚀 Submitting to Google Indexing API:', url);
-
       console.log('⏳ Sending request to Google...');
+
       const response = await this.indexing.urlNotifications.publish({
         requestBody: {
           url: url,
@@ -60,9 +66,9 @@ class GoogleIndexingService {
         notificationUrl: response.data.urlNotificationMetadata?.url,
         latestUpdate: response.data.urlNotificationMetadata?.latestUpdate
       };
+
     } catch (error) {
       console.error('❌ Google Indexing API Error:', error?.response?.data || error.message);
-
       return {
         success: false,
         error: error.message,
@@ -75,9 +81,11 @@ class GoogleIndexingService {
   async getIndexingStatus(url) {
     try {
       console.log('🔍 Checking indexing status for:', url);
+
       const response = await this.indexing.urlNotifications.getMetadata({
         url: url
       });
+
       console.log('📊 Status response:', JSON.stringify(response.data, null, 2));
 
       return {
@@ -85,6 +93,7 @@ class GoogleIndexingService {
         data: response.data,
         status: response.data.urlNotificationMetadata?.latestUpdate ? 'INDEXED' : 'PENDING'
       };
+
     } catch (error) {
       console.error('Google Status Check Error:', error?.response?.data || error.message);
       return {
